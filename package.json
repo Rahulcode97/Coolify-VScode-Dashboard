@@ -1,0 +1,383 @@
+{
+  "name": "coolify-vscode-dashboard",
+  "displayName": "Coolify Deploy Dashboard",
+  "description": "Deploy, monitor and manage your Coolify apps, databases and services from the VS Code sidebar. Each repo shows its own Coolify project, with live build logs and Cloudflare Access support.",
+  "version": "1.0.0",
+  "publisher": "rahulcode97",
+  "license": "MIT",
+  "author": {
+    "name": "Rahulcode97"
+  },
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#1e1033",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Rahulcode97/Coolify-VScode-Dashboard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Rahulcode97/Coolify-VScode-Dashboard/issues"
+  },
+  "homepage": "https://github.com/Rahulcode97/Coolify-VScode-Dashboard#readme",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "coolify",
+    "deploy",
+    "deployment",
+    "self-hosted",
+    "paas",
+    "docker",
+    "cloudflare",
+    "devops",
+    "logs"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "capabilities": {
+    "virtualWorkspaces": false,
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In untrusted folders the dashboard still works, but the pre-deploy command and local services from the folder's settings are ignored.",
+      "restrictedConfigurations": [
+        "coolify.preDeploy.command",
+        "coolify.preDeploy.cwd",
+        "coolify.localServices"
+      ]
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "coolify.refresh",
+        "title": "Refresh Dashboard",
+        "category": "Coolify",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "coolify.openSettings",
+        "title": "Open Settings",
+        "category": "Coolify",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "coolify.selectProject",
+        "title": "Select Project for This Folder",
+        "category": "Coolify",
+        "icon": "$(folder-library)"
+      },
+      {
+        "command": "coolify.quickDeploy",
+        "title": "Quick Deploy",
+        "category": "Coolify",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "coolify.showDeployments",
+        "title": "Show Deployment History",
+        "category": "Coolify",
+        "icon": "$(history)"
+      },
+      {
+        "command": "coolify.openInCoolify",
+        "title": "Open Project in Coolify",
+        "category": "Coolify",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "coolify.runPreDeploy",
+        "title": "Run Pre-Deploy Command",
+        "category": "Coolify"
+      },
+      {
+        "command": "coolify.copyAiSetupPrompt",
+        "title": "Copy AI Setup Prompt",
+        "category": "Coolify",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "coolify.signOut",
+        "title": "Forget Saved Credentials",
+        "category": "Coolify"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "coolify",
+          "title": "Coolify",
+          "icon": "media/activity-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "coolify": [
+        {
+          "type": "webview",
+          "id": "coolify.dashboard",
+          "name": "Dashboard"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "coolify.refresh",
+          "when": "view == coolify.dashboard",
+          "group": "navigation@1"
+        },
+        {
+          "command": "coolify.openSettings",
+          "when": "view == coolify.dashboard",
+          "group": "navigation@3"
+        },
+        {
+          "command": "coolify.selectProject",
+          "when": "view == coolify.dashboard",
+          "group": "navigation@2"
+        },
+        {
+          "command": "coolify.openInCoolify",
+          "when": "view == coolify.dashboard",
+          "group": "more@1"
+        },
+        {
+          "command": "coolify.copyAiSetupPrompt",
+          "when": "view == coolify.dashboard",
+          "group": "more@2"
+        }
+      ]
+    },
+    "configuration": [
+      {
+        "title": "Connection",
+        "order": 1,
+        "properties": {
+          "coolify.serverUrl": {
+            "type": "string",
+            "default": "",
+            "scope": "application",
+            "markdownDescription": "Address you open Coolify at, e.g. `https://coolify.example.com` or `http://localhost:8000`. `/api/v1` is added for you. The API token is saved securely; set it with **Coolify: Open Settings**.",
+            "order": 1
+          },
+          "coolify.authMode": {
+            "type": "string",
+            "enum": [
+              "token",
+              "cloudflare",
+              "headers"
+            ],
+            "enumDescriptions": [
+              "Coolify API token only (direct connection or a plain reverse proxy).",
+              "Coolify API token + Cloudflare Access service token (CF-Access-Client-Id / CF-Access-Client-Secret).",
+              "Coolify API token + your own extra headers (other auth proxies)."
+            ],
+            "default": "token",
+            "scope": "application",
+            "description": "How requests reach your Coolify server.",
+            "order": 2
+          },
+          "coolify.allowSelfSignedCerts": {
+            "type": "boolean",
+            "default": false,
+            "scope": "application",
+            "markdownDescription": "Accept self-signed or otherwise untrusted HTTPS certificates. Only turn this on for servers you control (homelab, LAN, localhost).",
+            "order": 3
+          },
+          "coolify.requestTimeoutSeconds": {
+            "type": "number",
+            "default": 15,
+            "minimum": 3,
+            "maximum": 120,
+            "scope": "application",
+            "description": "Timeout for each Coolify API request.",
+            "order": 4
+          }
+        }
+      },
+      {
+        "title": "Project",
+        "order": 2,
+        "properties": {
+          "coolify.projectUuid": {
+            "type": "string",
+            "default": "",
+            "scope": "resource",
+            "markdownDescription": "Coolify project shown for this folder. Leave empty to auto-detect from the folder's git remote. Set it in **Workspace** settings (`.vscode/settings.json`) to share the choice with your team. Use **Coolify: Select Project for This Folder** to pick from a list."
+          },
+          "coolify.environment": {
+            "type": "string",
+            "default": "",
+            "scope": "resource",
+            "markdownDescription": "Optional: only show one environment of the project (e.g. `production`). Empty shows all environments, grouped."
+          }
+        }
+      },
+      {
+        "title": "Dashboard",
+        "order": 3,
+        "properties": {
+          "coolify.refreshIntervalSeconds": {
+            "type": "number",
+            "default": 30,
+            "minimum": 10,
+            "maximum": 600,
+            "description": "How often the dashboard refreshes while it is visible. While a deployment is running it refreshes every 5 seconds."
+          },
+          "coolify.statusBar.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show a running/total count for the current project in the status bar."
+          },
+          "coolify.confirmDeploy": {
+            "type": "boolean",
+            "default": true,
+            "description": "Ask for confirmation before deploying, stopping or restarting."
+          }
+        }
+      },
+      {
+        "title": "Optional: Pre-deploy command",
+        "order": 4,
+        "properties": {
+          "coolify.preDeploy.command": {
+            "type": "string",
+            "default": "",
+            "scope": "resource",
+            "markdownDescription": "Command to run locally before every deploy, e.g. `npm run build` or `npm test`. If it fails, the deploy is stopped (you can still choose *Deploy anyway*). Empty = off."
+          },
+          "coolify.preDeploy.cwd": {
+            "type": "string",
+            "default": "",
+            "scope": "resource",
+            "markdownDescription": "Folder to run the pre-deploy command in, relative to the workspace folder (e.g. `web`). Empty = workspace folder."
+          },
+          "coolify.preDeploy.timeoutMinutes": {
+            "type": "number",
+            "default": 10,
+            "minimum": 1,
+            "maximum": 60,
+            "scope": "resource",
+            "description": "Stop the pre-deploy command if it runs longer than this."
+          }
+        }
+      },
+      {
+        "title": "Optional: Merge & Deploy",
+        "order": 5,
+        "properties": {
+          "coolify.merge.enabled": {
+            "type": "boolean",
+            "default": false,
+            "scope": "resource",
+            "markdownDescription": "Show a **Merge & Deploy** button on apps that build the target branch. It merges the source branch into the target branch, pushes, then deploys."
+          },
+          "coolify.merge.sourceBranch": {
+            "type": "string",
+            "default": "development",
+            "scope": "resource",
+            "description": "Branch that gets merged (e.g. development, staging)."
+          },
+          "coolify.merge.targetBranch": {
+            "type": "string",
+            "default": "main",
+            "scope": "resource",
+            "description": "Branch that receives the merge and is deployed (e.g. main, production)."
+          },
+          "coolify.merge.remote": {
+            "type": "string",
+            "default": "origin",
+            "scope": "resource",
+            "description": "Git remote used for fetch and push."
+          }
+        }
+      },
+      {
+        "title": "Optional: Local services",
+        "order": 6,
+        "properties": {
+          "coolify.localServices": {
+            "type": "array",
+            "default": [],
+            "scope": "resource",
+            "markdownDescription": "Local dev servers shown in the **Localhost** section, each started in its own terminal. Example: `[{ \"name\": \"Web\", \"command\": \"npm run dev\", \"cwd\": \"web\", \"port\": 3000 }]`",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "command"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Label shown in the dashboard."
+                },
+                "command": {
+                  "type": "string",
+                  "description": "Command to run, e.g. npm run dev."
+                },
+                "cwd": {
+                  "type": "string",
+                  "description": "Folder relative to the workspace folder."
+                },
+                "port": {
+                  "type": "number",
+                  "description": "Port the service listens on (used to show running/stopped)."
+                },
+                "url": {
+                  "type": "string",
+                  "description": "URL to open. Defaults to http://localhost:<port>."
+                },
+                "env": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "description": "Extra environment variables."
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src test scripts media esbuild.mjs",
+    "test": "vitest run",
+    "check:leaks": "node scripts/check-leaks.mjs",
+    "check:secrets": "secretlint \"**/*\"",
+    "package": "vsce package --no-dependencies",
+    "vscode:prepublish": "node esbuild.mjs --production",
+    "sync:readme": "node scripts/sync-readme-prompt.mjs",
+    "check": "npm run typecheck && npm run lint && npm test && npm run check:leaks && npm run check:secrets"
+  },
+  "dependencies": {
+    "simple-git": "^3.27.0"
+  },
+  "devDependencies": {
+    "@secretlint/secretlint-rule-preset-recommend": "^9.0.0",
+    "@types/node": "^20.11.0",
+    "@types/vscode": "~1.85.0",
+    "@vscode/vsce": "^3.2.0",
+    "esbuild": "^0.24.0",
+    "eslint": "^9.15.0",
+    "globals": "^15.12.0",
+    "secretlint": "^9.0.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.15.0",
+    "vitest": "^2.1.0"
+  }
+}

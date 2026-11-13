@@ -1,0 +1,310 @@
+/*
+ * Shared tokens. Everything is derived from VS Code theme variables so the UI
+ * follows Light, Dark, High Contrast and High Contrast Light automatically.
+ */
+:root {
+    --accent: #8c52ff;
+    --accent-fg: #ffffff;
+    --accent-text: #a47aff;
+    --ok: var(--vscode-testing-iconPassed, #3fb950);
+    --bad: var(--vscode-testing-iconFailed, var(--vscode-errorForeground, #f14c4c));
+    --warn: var(--vscode-editorWarning-foreground, #cca700);
+    --info: var(--vscode-editorInfo-foreground, #3794ff);
+    --muted: var(--vscode-descriptionForeground, #8b949e);
+    --fg: var(--vscode-foreground);
+    --border: var(--vscode-widget-border, var(--vscode-panel-border, rgba(128, 128, 128, 0.35)));
+    --card: color-mix(in srgb, var(--vscode-foreground) 4%, transparent);
+    --card-hover: var(--vscode-list-hoverBackground, color-mix(in srgb, var(--vscode-foreground) 8%, transparent));
+    --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+    --accent-line: color-mix(in srgb, var(--accent) 40%, transparent);
+    --radius: 8px;
+    --mono: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+    --focus: var(--vscode-focusBorder, var(--accent));
+}
+
+body.vscode-light {
+    --accent: #6b2fd6;
+    --accent-text: #5b21c4;
+    --card: color-mix(in srgb, var(--vscode-foreground) 3.5%, transparent);
+}
+
+body.vscode-high-contrast,
+body.vscode-high-contrast-light {
+    --accent: var(--vscode-button-background, #8c52ff);
+    --accent-fg: var(--vscode-button-foreground, #ffffff);
+    --accent-text: var(--vscode-textLink-foreground, var(--fg));
+    --card: transparent;
+    --card-hover: transparent;
+    --accent-soft: transparent;
+    --border: var(--vscode-contrastBorder, currentColor);
+    --accent-line: var(--vscode-contrastActiveBorder, var(--vscode-contrastBorder, currentColor));
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size, 13px);
+    color: var(--fg);
+    background: transparent;
+    line-height: 1.4;
+}
+
+a {
+    color: var(--vscode-textLink-foreground);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+a:hover {
+    text-decoration: underline;
+    color: var(--vscode-textLink-activeForeground, var(--vscode-textLink-foreground));
+}
+
+svg {
+    display: block;
+    flex-shrink: 0;
+}
+
+:focus-visible {
+    outline: 1px solid var(--focus);
+    outline-offset: 1px;
+}
+
+code,
+kbd {
+    font-family: var(--mono);
+    font-size: 0.92em;
+    background: var(--vscode-textCodeBlock-background, var(--card));
+    padding: 1px 4px;
+    border-radius: 4px;
+}
+
+/* ---- Buttons ---------------------------------------------------------- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 18px;
+    padding: 3px 10px;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    color: var(--vscode-button-secondaryForeground, var(--fg));
+    background: var(--vscode-button-secondaryBackground, var(--card));
+}
+
+.btn:hover {
+    background: var(--vscode-button-secondaryHoverBackground, var(--card-hover));
+}
+
+.btn.primary {
+    color: var(--accent-fg);
+    background: var(--accent);
+}
+
+.btn.primary:hover {
+    background: color-mix(in srgb, var(--accent) 85%, black);
+}
+
+body.vscode-high-contrast .btn,
+body.vscode-high-contrast-light .btn {
+    border-color: var(--vscode-contrastBorder, currentColor);
+}
+
+.btn.warn {
+    color: var(--vscode-button-foreground, #fff);
+    background: color-mix(in srgb, var(--warn) 85%, black);
+}
+
+.btn.ghost {
+    background: transparent;
+    border-color: var(--border);
+}
+
+.btn.ghost:hover {
+    background: var(--card-hover);
+}
+
+.btn.danger {
+    background: transparent;
+    color: var(--bad);
+    border-color: color-mix(in srgb, var(--bad) 45%, transparent);
+}
+
+.btn.icon {
+    padding: 3px 5px;
+}
+
+.btn:disabled,
+.btn[aria-busy='true'] {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.btn[aria-busy='true'] svg {
+    animation: spin 0.9s linear infinite;
+}
+
+.icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    border: none;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    opacity: 0.75;
+    cursor: pointer;
+}
+
+.icon-btn:hover {
+    opacity: 1;
+    background: var(--vscode-toolbar-hoverBackground, var(--card-hover));
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ---- Form controls ---------------------------------------------------- */
+input[type='text'],
+input[type='password'],
+input[type='number'],
+input[type='url'],
+select,
+textarea {
+    font: inherit;
+    width: 100%;
+    color: var(--vscode-input-foreground);
+    background: var(--vscode-input-background);
+    border: 1px solid var(--vscode-input-border, var(--border));
+    border-radius: 4px;
+    padding: 5px 8px;
+    outline: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--focus);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--vscode-input-placeholderForeground, var(--muted));
+}
+
+select {
+    background: var(--vscode-dropdown-background, var(--vscode-input-background));
+    color: var(--vscode-dropdown-foreground, var(--vscode-input-foreground));
+    border-color: var(--vscode-dropdown-border, var(--border));
+}
+
+input[type='checkbox'] {
+    accent-color: var(--accent);
+    margin: 0;
+}
+
+/* ---- Notices ---------------------------------------------------------- */
+.notice {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--card);
+    font-size: 12px;
+}
+
+.notice.error {
+    border-color: color-mix(in srgb, var(--bad) 50%, transparent);
+    background: color-mix(in srgb, var(--bad) 9%, transparent);
+}
+
+.notice.warn {
+    border-color: color-mix(in srgb, var(--warn) 50%, transparent);
+    background: color-mix(in srgb, var(--warn) 9%, transparent);
+}
+
+.notice.ok {
+    border-color: color-mix(in srgb, var(--ok) 50%, transparent);
+    background: color-mix(in srgb, var(--ok) 9%, transparent);
+}
+
+.notice.info {
+    border-color: var(--accent-line);
+    background: var(--accent-soft);
+}
+
+.notice .notice-icon {
+    margin-top: 1px;
+}
+
+.notice.error .notice-icon {
+    color: var(--bad);
+}
+
+.notice.warn .notice-icon {
+    color: var(--warn);
+}
+
+.notice.ok .notice-icon {
+    color: var(--ok);
+}
+
+.notice.info .notice-icon {
+    color: var(--accent-text);
+}
+
+.muted {
+    color: var(--muted);
+}
+
+.loading {
+    padding: 16px 12px;
+    color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+.mt-xs {
+    margin-top: 3px;
+}
+
+.mt-sm {
+    margin-top: 8px;
+}
+
+.small {
+    font-size: 12px;
+}
+
+.accent {
+    color: var(--accent-text);
+}
