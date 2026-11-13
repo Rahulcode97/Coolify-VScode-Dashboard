@@ -16,6 +16,10 @@ Works in **VS Code**, **Cursor**, **VSCodium** and **Windsurf**.
 
 <img src="docs/images/overview-dark.png" alt="The Coolify sidebar next to the settings page in VS Code" width="900">
 
+**See the lights in action:** pink = not deployed yet, red = stop users first, amber = deploying, green flash = done.
+
+<img src="docs/images/deploy-lights.gif" alt="Short video: pink and red bars, a deploy pulsing amber then flashing green, and a failed deploy turning red" width="430">
+
 </div>
 
 ---
@@ -26,6 +30,7 @@ You push, then switch to the browser, find the project, open the app, wait for t
 
 - **The right project, automatically.** Several projects on one Coolify server? The folder you open shows only *its* apps, matched by git remote. No more scrolling past other projects.
 - **One-click deploys with live logs.** Deploy, force rebuild or cancel, and watch the build log stream in the sidebar.
+- **Knows what still needs deploying.** A **pink** edge marks apps whose code changed since their running deployment (monorepo aware). A **red** edge warns *before* you deploy a migration that would lock tables or break the running app: stop users first.
 - **Catches "successful" failed builds.** Coolify sometimes marks a deployment *finished* even though the build log contains `npm ERR!` or a Docker error, and the old container keeps serving. The extension flags it in red.
 - **Works where your Coolify lives.** Direct HTTPS, a bare IP on `:8000`, localhost, a homelab with a self-signed certificate, or **behind Cloudflare Access**.
 - **Feels native.** Follows your light, dark or high-contrast theme. Polls only while the sidebar is visible.
@@ -36,7 +41,7 @@ You push, then switch to the browser, find the project, open the app, wait for t
 - [Setup](#setup) (about 3 minutes)
 - [Set up with AI](#set-up-with-ai) (copy-paste prompt)
 - [How it works](#how-it-works)
-- [Using the dashboard](#using-the-dashboard)
+- [Using the dashboard](#using-the-dashboard) · [What the lights mean](#what-the-lights-mean)
 - [Optional features](#optional-features)
 - [Settings reference](#settings-reference) · [Commands](#commands)
 - [Privacy & performance](#privacy--performance)
@@ -49,6 +54,7 @@ You push, then switch to the browser, find the project, open the app, wait for t
 | 🗂 **Per-folder projects** | Each workspace folder shows only its Coolify project: auto-detected from the git remote, picked once, or set for the team in `.vscode/settings.json`. |
 | 🚀 **Deploy & control** | Deploy, Force rebuild (no cache), Cancel, Start, Stop, Restart for apps, services and databases. |
 | 📜 **Logs** | Live build log while deploying, logs of past deployments, and container (runtime) logs. |
+| 🚦 **Pink & red bars** | Pink = changes not deployed yet (per app folder). Red = "stop users": new SQL migrations that lock or break the running app, or your own downtime rules. [How it works](docs/pink-and-red-bars.md) |
 | 🟢 **Status at a glance** | Container dot + health dot per resource, "3m ago · a1b2c3d · commit message", running/total in the status bar. |
 | 🧱 **Environments** | Resources grouped by environment (production, staging, …); optionally show just one. |
 | 🔐 **Secure by default** | Token and secrets in the OS keychain (SecretStorage), never in `settings.json`. Strict webview Content-Security-Policy. |
@@ -165,6 +171,10 @@ Optional features (all off by default), set in the Settings page or settings.jso
 - "coolify.merge.enabled", "coolify.merge.sourceBranch", "coolify.merge.targetBranch", "coolify.merge.remote": the Merge & Deploy button.
 - "coolify.localServices": a list like [{ "name": "Web", "command": "npm run dev", "cwd": "web", "port": 3000 }] for the Localhost section.
 
+Pink and red bars (on by default, set per folder):
+- Pink right edge = the app has changes not deployed yet (newer commits on its branch, or unpushed/uncommitted work on that branch), counting only files in the app's Coolify Base Directory / Watch Paths. Setting: "coolify.deployRisk.pendingBar".
+- Red right edge = "stop users": a new SQL migration would lock or break the running app, or a changed file matches a rule. Settings: "coolify.deployRisk.stopUsersCheck", "coolify.deployRisk.migrationGlobs" (where migrations live), "coolify.deployRisk.downtimeRules" (list like [{ "pattern": "docker-compose.yml", "reason": "recreates all containers" }]). A "-- coolify:safe" comment in a migration silences it.
+
 Common errors and fixes:
 - 401: the token is wrong or was deleted. Create a new one.
 - 403 "API is disabled": set "API access" to Enabled in Coolify → Settings → Advanced.
@@ -215,12 +225,39 @@ No name guessing, so look-alike names in other projects never leak in. [More det
 </tr>
 </table>
 
+### What the lights mean
+
+<table>
+<tr>
+<td width="430"><img src="docs/images/deploy-lights.gif" alt="Lights during a deploy" width="430"></td>
+<td>
+
+| Light | Meaning |
+|---|---|
+| 🟢 **Top dot** | Container running |
+| 🟡 **Top dot, pulsing** + amber left edge | Deploying (queued or building). The button turns into *Deploying…* and the live log opens. The status bar shows a spinner |
+| ✨ **Green flash** | The deploy just finished successfully |
+| 🔴 **Top dot** + red left edge | Container stopped, or the last deploy failed (also when Coolify said *finished* but the build log has errors) |
+| **Small dot** | Health check from Coolify: green healthy, red unhealthy, amber unknown |
+| **Purple left edge** 📍 | This app builds the repo you have open |
+| **Pink right edge** (slow pulse) | Changes in this app's folder are **not deployed yet**: *needs deploy* |
+| **Red right edge** (fast pulse) | Deploying now would disturb users (unsafe migration or your rule): *stop users*, reasons listed under the row |
+
+</td>
+</tr>
+</table>
+
+| Dark | Light |
+|---|---|
+| ![Pink and red bars, dark theme](docs/images/bars-dark.png) | ![Pink and red bars, light theme](docs/images/bars-light.png) |
+
+**Pink** compares the commit Coolify deployed last with your git: newer commits on the app's branch, plus unpushed or uncommitted work when that branch is checked out. Only files inside the app's Coolify **Base Directory** / **Watch Paths** count, so in a monorepo the web and API apps light up separately.
+
+**Red** appears when the pending change contains a **new SQL migration** that would lock or break the running app (`DROP COLUMN`, renames, `NOT NULL` without a default, type changes, non-concurrent indexes, big `UPDATE`s …), or touches a file matching **your own downtime rules** (e.g. `docker-compose.yml`). Add `-- coolify:safe` to a migration to silence it. → **[Full details](docs/pink-and-red-bars.md)**
+
 **Each row**
 
-- **Top dot: container.** 🟢 running · 🟡 deploying/starting · 🔴 stopped, or the last deployment failed · grey unknown.
-- **Small dot: health check** reported by Coolify (healthy / unhealthy / unknown).
-- **Left edge:** purple = this app builds the repo you have open, amber = deploying, red = failed.
-- **Subline:** `14m ago · a1b2c3d · Add pricing page`, or *Deploying…*, *build failed*, *exited*.
+- **Subline:** `14m ago · a1b2c3d · Add pricing page`, or *Deploying…*, *needs deploy*, *stop users*, *build failed*, *exited*.
 - **Buttons:** Deploy (or a disabled *Deploying…* with **Live log**), Restart, Stop / Start. Click the row for details.
 
 **Expanded row:** status, environment, branch, URLs, last deployment (status, start time, duration, trigger: git push / API / manual), commit link, **Build log**, **Container log**, **Force rebuild**, **Cancel** (while running), **Open in Coolify**, and the last five deployments. Click one to inspect it.
@@ -291,6 +328,10 @@ Connection settings are per machine (User settings). Secrets are **not** setting
 | `coolify.refreshIntervalSeconds` | `30` | user | Refresh interval while visible (5 s during a deployment) |
 | `coolify.statusBar.enabled` | `true` | user | Show `Project running/total` in the status bar |
 | `coolify.confirmDeploy` | `true` | user | Ask before deploy / stop / restart |
+| `coolify.deployRisk.pendingBar` | `true` | folder | Pink bar for apps with changes not deployed yet |
+| `coolify.deployRisk.stopUsersCheck` | `true` | folder | Red "stop users" bar for unsafe migrations / your rules |
+| `coolify.deployRisk.migrationGlobs` | `[]` | folder | Where SQL migrations live (empty = common locations) |
+| `coolify.deployRisk.downtimeRules` | `[]` | folder | `[{ "pattern": "docker-compose.yml", "reason": "…" }]` |
 | `coolify.preDeploy.command` | `""` | folder | Command to run before deploys |
 | `coolify.preDeploy.cwd` | `""` | folder | Folder for that command |
 | `coolify.preDeploy.timeoutMinutes` | `10` | folder | Stop the command after this long |
@@ -319,6 +360,7 @@ Connection settings are per machine (User settings). Secrets are **not** setting
 - **Your data stays between VS Code and your Coolify.** No telemetry, no third-party servers.
 - **Secrets** (API token, Cloudflare secret, custom header values) are stored with VS Code SecretStorage, i.e. your OS keychain. Older plain-text settings (`coolify.apiToken` …) are moved there automatically and removed from `settings.json`.
 - **Connection settings can't be set by a repo.** `serverUrl` and `authMode` are machine-scoped, so a malicious `.vscode/settings.json` can't redirect your token to another server.
+- **Pink/red checks run locally** with `git` (no network besides the throttled `git fetch`); results are cached per commit.
 - **Light on resources:** activates after startup and does nothing until configured; polls only while the sidebar is visible (the status bar refreshes every 2 minutes while the window is focused); never overlaps requests; caches project environments, commit subjects and build-log scans; `git fetch` at most every 5 minutes.
 - **Safe API use:** deploys always use `POST /deploy`. Coolify also treats `GET /deploy` as "deploy now", so the extension never calls it.
 - Small: one ~130 KB bundled file, no runtime dependencies to install.
@@ -334,6 +376,8 @@ Connection settings are per machine (User settings). Secrets are **not** setting
 | *Connection refused* | Wrong port (fresh installs use `:8000`) or Coolify not running |
 | *Certificate not trusted* | Fix the certificate, or *Allow self-signed certificates* |
 | Wrong project shown | Click the project name at the top of the sidebar |
+| Pink/red bar never shows | The app must build this repo (purple edge) and its deployed commit must be in your local git history; check Base Directory |
+| Red bar for a migration you know is safe | Add `-- coolify:safe` to that migration file |
 
 → **[All errors and fixes](docs/troubleshooting.md)**
 

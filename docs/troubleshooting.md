@@ -31,6 +31,8 @@ Still stuck? Click **Copy AI setup prompt** and paste it into Claude, ChatGPT or
 | "build failed" on an app Coolify shows as finished | Coolify marked the deployment *finished*, but the log contains a build error (e.g. `npm ERR!`). The running container is probably the previous build. Open **Build log**. |
 | Container log says it needs "Read sensitive data" | Create a token with that permission. |
 | Start/Stop does nothing | The token needs **Write**. |
+| No pink/red bar although I changed code | The bar only shows on apps that build this repo, after the deployed commit exists in your local history (`git fetch`), and only for files inside the app's Base Directory / Watch Paths. Is the app deploying right now? Then it is hidden until it finishes. |
+| Red bar for a migration that is fine | Add `-- coolify:safe` to that migration, or narrow `coolify.deployRisk.migrationGlobs`. |
 | Status bar item missing | It appears after the first successful refresh. Check `coolify.statusBar.enabled`. |
 
 ## Optional features

@@ -350,3 +350,22 @@ details.feature[open] > summary {
 .danger-link {
     color: var(--bad);
 }
+
+textarea {
+    resize: vertical;
+    font-family: var(--mono);
+    font-size: 12px;
+}
+
+b.pink {
+    color: #ec4899;
+}
+
+b.red {
+    color: #ef4444;
+}
+
+.hdr + .btn,
+.field > .btn {
+    margin-top: 2px;
+}

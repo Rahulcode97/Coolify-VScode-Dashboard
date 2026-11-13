@@ -48,6 +48,10 @@ Optional features (all off by default), set in the Settings page or settings.jso
 - "coolify.merge.enabled", "coolify.merge.sourceBranch", "coolify.merge.targetBranch", "coolify.merge.remote": the Merge & Deploy button.
 - "coolify.localServices": a list like [{ "name": "Web", "command": "npm run dev", "cwd": "web", "port": 3000 }] for the Localhost section.
 
+Pink and red bars (on by default, set per folder):
+- Pink right edge = the app has changes not deployed yet (newer commits on its branch, or unpushed/uncommitted work on that branch), counting only files in the app's Coolify Base Directory / Watch Paths. Setting: "coolify.deployRisk.pendingBar".
+- Red right edge = "stop users": a new SQL migration would lock or break the running app, or a changed file matches a rule. Settings: "coolify.deployRisk.stopUsersCheck", "coolify.deployRisk.migrationGlobs" (where migrations live), "coolify.deployRisk.downtimeRules" (list like [{ "pattern": "docker-compose.yml", "reason": "recreates all containers" }]). A "-- coolify:safe" comment in a migration silences it.
+
 Common errors and fixes:
 - 401: the token is wrong or was deleted. Create a new one.
 - 403 "API is disabled": set "API access" to Enabled in Coolify → Settings → Advanced.

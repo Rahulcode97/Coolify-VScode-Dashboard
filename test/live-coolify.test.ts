@@ -47,7 +47,7 @@ describe.skipIf(!url || !token)('live Coolify (read-only)', () => {
                 remoteUrl: '',
                 branch: '',
                 savedProjectUuid: p.uuid,
-                settings: { projectUuid: '', environment: '', preDeployCommand: '', preDeployCwd: '', preDeployTimeoutMinutes: 10, mergeEnabled: false, mergeSource: 'development', mergeTarget: 'main', mergeRemote: 'origin', localServices: [] },
+                settings: { projectUuid: '', environment: '', preDeployCommand: '', preDeployCwd: '', preDeployTimeoutMinutes: 10, mergeEnabled: false, mergeSource: 'development', mergeTarget: 'main', mergeRemote: 'origin', localServices: [], pendingBar: false, stopUsersCheck: false, migrationGlobs: [], downtimeRules: [] },
             });
             expect(s.phase).toBe('ready');
             expect(s.project?.uuid).toBe(p.uuid);

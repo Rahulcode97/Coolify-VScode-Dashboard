@@ -28,6 +28,10 @@ export interface CoolifyResource {
     fqdn?: string | null;
     git_repository?: string | null;
     git_branch?: string | null;
+    /** Folder inside the repo the app is built from, e.g. "/web" (applications only). */
+    base_directory?: string | null;
+    /** Coolify "Watch Paths": newline-separated patterns that trigger auto-deploys. */
+    watch_paths?: string | null;
     created_at?: string;
     updated_at?: string;
     [key: string]: unknown;

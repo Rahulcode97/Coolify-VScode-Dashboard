@@ -675,3 +675,126 @@ pre.log.error {
     background: var(--muted);
     opacity: 1;
 }
+
+/* ---- Pending-deploy (pink) and stop-users (red) edge bars --------------- */
+:root {
+    --pending: #ec4899;
+    --stop: #ef4444;
+}
+
+body.vscode-light {
+    --pending: #db2777;
+    --stop: #dc2626;
+}
+
+.row.pending::after,
+.row.pending-stop::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    pointer-events: none;
+}
+
+.row.pending::after {
+    background: var(--pending);
+    box-shadow: -2px 0 10px color-mix(in srgb, var(--pending) 45%, transparent);
+    animation: pending-glow 2s ease-in-out infinite;
+}
+
+.row.pending-stop::after {
+    background: var(--stop);
+    box-shadow: -2px 0 12px color-mix(in srgb, var(--stop) 70%, transparent);
+    animation: stop-glow 1.05s ease-in-out infinite;
+}
+
+@keyframes pending-glow {
+    0%,
+    100% {
+        opacity: 0.7;
+    }
+    50% {
+        opacity: 1;
+        box-shadow: -2px 0 16px color-mix(in srgb, var(--pending) 70%, transparent);
+    }
+}
+
+@keyframes stop-glow {
+    0%,
+    100% {
+        opacity: 0.75;
+    }
+    50% {
+        opacity: 1;
+        box-shadow: -2px 0 18px color-mix(in srgb, var(--stop) 95%, transparent);
+    }
+}
+
+body.vscode-high-contrast .row.pending::after,
+body.vscode-high-contrast-light .row.pending::after,
+body.vscode-high-contrast .row.pending-stop::after,
+body.vscode-high-contrast-light .row.pending-stop::after {
+    width: 5px;
+    box-shadow: none;
+}
+
+.sub .state-pending {
+    color: var(--pending);
+    font-weight: 600;
+}
+
+.sub .state-stop {
+    color: var(--stop);
+    font-weight: 700;
+}
+
+.stop-list {
+    list-style: none;
+    margin: 5px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.stop-list li {
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--stop);
+}
+
+.stop-file {
+    display: inline-block;
+    margin-right: 5px;
+    padding: 0 4px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--stop) 16%, transparent);
+}
+
+.stop-more {
+    opacity: 0.75;
+}
+
+.notice.pending {
+    border-color: color-mix(in srgb, var(--pending) 50%, transparent);
+    background: color-mix(in srgb, var(--pending) 9%, transparent);
+}
+
+.notice.pending .notice-icon {
+    color: var(--pending);
+}
+
+.finding-list {
+    margin: 6px 0 0;
+    padding-left: 16px;
+}
+
+.finding-list li {
+    margin-bottom: 3px;
+}

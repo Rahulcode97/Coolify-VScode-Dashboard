@@ -14,6 +14,7 @@ import {
     repoWebUrl,
     scanBuildLogForErrors,
 } from './logs';
+import { PendingResult } from './pending';
 import { ProjectDirectory, ProjectSource, environmentsForRepo, filterByEnvironments, repoKey, resolveProject, sameRepo } from './projects';
 
 export interface FolderContext {
@@ -59,6 +60,10 @@ export interface ResourceView {
     /** Merge & Deploy applies to this app. */
     isMergeTarget: boolean;
     deployments: DeploymentView[];
+    baseDirectory: string;
+    watchPaths: string;
+    /** Changes not deployed yet (pink) and reasons to stop users first (red). */
+    pending?: PendingResult | null;
 }
 
 export interface EnvironmentGroup {
@@ -140,6 +145,8 @@ export interface BuildOptions {
     /** Compare branches for Merge & Deploy. */
     aheadBehind?: () => Promise<{ behind: number; ahead: number } | null>;
     deploymentsPerApp?: number;
+    /** Work out pink/red bars for apps that build the open repo. */
+    pending?: (apps: ResourceView[]) => Promise<Record<string, PendingResult | null>>;
 }
 
 /** Holds caches that survive between refreshes (project environments, build-log scans). */
@@ -239,10 +246,19 @@ export class DashboardData {
                 isThisRepo: kind === 'application' && !!folderRepo && sameRepo(repoKey(r.git_repository), folderRepo),
                 isMergeTarget: kind === 'application' && !!settings?.mergeEnabled && branch === settings.mergeTarget,
                 deployments: [],
+                baseDirectory: String(r.base_directory || ''),
+                watchPaths: String(r.watch_paths || ''),
             };
         });
 
         await this.attachDeployments(client, views, opts);
+        if (opts.pending) {
+            const candidates = views.filter((v) => v.isThisRepo && v.deployments.length && !isActiveDeployment(v.deployments[0].status));
+            if (candidates.length) {
+                const res = await opts.pending(candidates).catch(() => ({}) as Record<string, PendingResult | null>);
+                for (const v of candidates) v.pending = res[v.uuid] || null;
+            }
+        }
 
         // Group by environment, in Coolify's order; apps first, then services, then databases.
         const order: Record<ResourceKind, number> = { application: 0, service: 1, database: 2 };

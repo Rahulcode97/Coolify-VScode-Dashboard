@@ -17,6 +17,11 @@ export interface LocalServiceConfig {
     env?: Record<string, string>;
 }
 
+export interface DowntimeRuleConfig {
+    pattern: string;
+    reason?: string;
+}
+
 export interface FolderSettings {
     projectUuid: string;
     environment: string;
@@ -28,6 +33,10 @@ export interface FolderSettings {
     mergeTarget: string;
     mergeRemote: string;
     localServices: LocalServiceConfig[];
+    pendingBar: boolean;
+    stopUsersCheck: boolean;
+    migrationGlobs: string[];
+    downtimeRules: DowntimeRuleConfig[];
 }
 
 /** What the settings page shows. Secrets are never included, only whether they are set. */
@@ -209,6 +218,10 @@ export class Settings {
             mergeTarget: (c.get<string>('merge.targetBranch') || 'main').trim(),
             mergeRemote: (c.get<string>('merge.remote') || 'origin').trim(),
             localServices: services,
+            pendingBar: c.get<boolean>('deployRisk.pendingBar') !== false,
+            stopUsersCheck: c.get<boolean>('deployRisk.stopUsersCheck') !== false,
+            migrationGlobs: (c.get<string[]>('deployRisk.migrationGlobs') || []).filter((g) => typeof g === 'string' && g.trim()),
+            downtimeRules: (c.get<DowntimeRuleConfig[]>('deployRisk.downtimeRules') || []).filter((r) => r && typeof r.pattern === 'string' && r.pattern.trim()),
         };
     }
 

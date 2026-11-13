@@ -32,6 +32,11 @@
         mergeRemote: 'origin',
         /** @type {{name:string,command:string,cwd?:string,port?:number|string,url?:string}[]} */
         localServices: [],
+        pendingBar: true,
+        stopUsersCheck: true,
+        migrationGlobsText: '',
+        /** @type {{pattern:string,reason?:string}[]} */
+        downtimeRules: [],
     };
     let testResult = null;
     let saveMsg = { text: '', cls: '' };
@@ -181,6 +186,16 @@
             <div class="field narrow"><label for="refreshIntervalSeconds">Refresh every (seconds)</label><input type="number" id="refreshIntervalSeconds" min="10" max="600" data-bind="refreshIntervalSeconds" value="${esc(form.refreshIntervalSeconds)}"><div class="help">Only while the sidebar is visible. During a deployment it refreshes every 5 s.</div></div>
             <label class="toggle"><input type="checkbox" data-bind="statusBar" ${form.statusBar ? 'checked' : ''}><span>Show running/total in the status bar</span></label>
             <label class="toggle"><input type="checkbox" data-bind="confirmDeploy" ${form.confirmDeploy ? 'checked' : ''}><span>Ask before deploy, stop and restart</span></label>
+        
+            <details class="feature" open><summary>Pink &amp; red bars: undeployed changes and "stop users"<span class="state${form.pendingBar ? ' on' : ''}">${form.pendingBar ? (form.stopUsersCheck ? 'pink + red' : 'pink only') : 'off'}</span></summary>
+                <label class="toggle"><input type="checkbox" data-bind="pendingBar" ${form.pendingBar ? 'checked' : ''}><span><b class="pink">Pink bar</b>: app has changes that are not deployed yet<span class="d">Newer commits on the app's branch than the running deployment, plus unpushed or uncommitted work when that branch is checked out. Only files inside the app's Coolify <i>Base Directory</i> / <i>Watch Paths</i> count.</span></span></label>
+                <label class="toggle"><input type="checkbox" data-bind="stopUsersCheck" ${form.stopUsersCheck ? 'checked' : ''} ${form.pendingBar ? '' : 'disabled'}><span><b class="red">Red bar</b>: "stop users" before deploying<span class="d">New SQL migrations that lock or rewrite tables, or drop/rename columns the running version still uses, and files matching your rules below. Add <code>-- coolify:safe</code> to a migration you know is fine.</span></span></label>
+                <div class="field"><label for="migrationGlobs">Migration files (one glob per line, empty = common locations)</label><textarea id="migrationGlobs" rows="3" data-bind="migrationGlobsText" placeholder="**/migrations/**/*.sql&#10;prisma/migrations/**/migration.sql" spellcheck="false">${esc(form.migrationGlobsText)}</textarea></div>
+                <div class="field"><span class="label">Your downtime rules</span>
+                ${form.downtimeRules.map((r, i) => `<div class="hdr"><input type="text" data-rule="${i}" data-f="pattern" placeholder="docker-compose.yml" value="${esc(r.pattern)}" spellcheck="false"><input type="text" data-rule="${i}" data-f="reason" placeholder="Reason, e.g. recreates all containers" value="${esc(r.reason || '')}"><button class="btn ghost icon" title="Remove" data-action="removeRule" data-i="${i}">${I.x}</button></div>`).join('')}
+                <button class="btn ghost" data-action="addRule">${I.plus} Add rule</button>
+                <div class="help">When a pending change touches a matching file, the app turns red with your reason. Saved for this folder. <a data-action="openDoc" data-doc="pink-and-red-bars.md">How the bars work →</a></div></div>
+            </details>
         </section>`;
 
         // ---- Optional ---------------------------------------------------------
@@ -217,6 +232,7 @@
                 <a data-action="openDoc" data-doc="cloudflare-access.md">Cloudflare Access setup</a>
                 <a data-action="openDoc" data-doc="localhost-and-direct.md">Localhost / direct / homelab</a>
                 <a data-action="openDoc" data-doc="multiple-projects.md">Several projects &amp; repos</a>
+                <a data-action="openDoc" data-doc="pink-and-red-bars.md">Pink &amp; red bars explained</a>
                 <a data-action="openDoc" data-doc="troubleshooting.md">Troubleshooting</a>
                 <a data-action="copyPrompt">Copy AI setup prompt</a>
                 <a data-action="forget" class="danger-link">Forget saved token &amp; secrets</a>
@@ -276,6 +292,7 @@
         }
         if (t.hasAttribute('data-hname')) form.headers[Number(t.getAttribute('data-hname'))].name = t.value;
         if (t.hasAttribute('data-hvalue')) form.headers[Number(t.getAttribute('data-hvalue'))].value = t.value;
+        if (t.hasAttribute('data-rule')) form.downtimeRules[Number(t.getAttribute('data-rule'))][t.getAttribute('data-f') || 'pattern'] = t.value;
         if (t.hasAttribute('data-svc')) form.localServices[Number(t.getAttribute('data-svc'))][t.getAttribute('data-f') || 'name'] = t.value;
     });
 
@@ -327,6 +344,10 @@
                         mergeTarget: form.mergeTarget,
                         mergeRemote: form.mergeRemote,
                         localServices: form.localServices,
+                        pendingBar: form.pendingBar,
+                        stopUsersCheck: form.stopUsersCheck,
+                        migrationGlobs: form.migrationGlobsText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean),
+                        downtimeRules: form.downtimeRules,
                     },
                 });
                 return;
@@ -335,6 +356,12 @@
                 return rerender();
             case 'removeHeader':
                 form.headers.splice(i, 1);
+                return rerender();
+            case 'addRule':
+                form.downtimeRules.push({ pattern: '', reason: '' });
+                return rerender();
+            case 'removeRule':
+                form.downtimeRules.splice(i, 1);
                 return rerender();
             case 'addSvc':
                 form.localServices.push({ name: '', command: '', cwd: '', port: '' });
@@ -377,6 +404,10 @@
                     mergeTarget: m.features.mergeTarget,
                     mergeRemote: m.features.mergeRemote,
                     localServices: (m.features.localServices || []).map((s) => ({ ...s })),
+                    pendingBar: m.features.pendingBar !== false,
+                    stopUsersCheck: m.features.stopUsersCheck !== false,
+                    migrationGlobsText: (m.features.migrationGlobs || []).join('\n'),
+                    downtimeRules: (m.features.downtimeRules || []).map((r) => ({ ...r })),
                 });
                 if (form.authMode === 'headers' && form.headers.length === 0) form.headers.push({ name: '', value: '' });
                 if (!saveMsg.cls) saveMsg = c.hasToken ? { text: '', cls: '' } : { text: 'Not connected yet', cls: '' };

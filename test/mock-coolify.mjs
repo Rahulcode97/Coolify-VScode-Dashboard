@@ -4,6 +4,7 @@
 //   node test/mock-coolify.mjs            # http://127.0.0.1:8765, token "test-token"
 //   node test/mock-coolify.mjs --cf       # also require Cloudflare Access headers
 //
+import { execFileSync } from 'node:child_process';
 import http from 'node:http';
 
 export const TOKEN = 'test-token';
@@ -31,8 +32,8 @@ export function seed() {
         'proj-shop-00000000000003': [{ id: 31, uuid: 'env-shop-prod-000000031', name: 'production', project_id: 3 }],
     };
     const resources = [
-        { uuid: 'app-acme-web-prod-0001', name: 'acme-web', type: 'application', status: 'running:healthy', environment_id: 11, fqdn: 'https://www.example.com', git_repository: 'acme/acme-web', git_branch: 'main' },
-        { uuid: 'app-acme-api-prod-0002', name: 'acme-api', type: 'application', status: 'running:healthy', environment_id: 11, fqdn: 'https://api.example.com', git_repository: 'https://github.com/acme/acme-web.git', git_branch: 'main' },
+        { uuid: 'app-acme-web-prod-0001', name: 'acme-web', type: 'application', status: 'running:healthy', environment_id: 11, fqdn: 'https://www.example.com', git_repository: 'acme/acme-web', git_branch: 'main', base_directory: '/web' },
+        { uuid: 'app-acme-api-prod-0002', name: 'acme-api', type: 'application', status: 'running:healthy', environment_id: 11, fqdn: 'https://api.example.com', git_repository: 'https://github.com/acme/acme-web.git', git_branch: 'main', base_directory: '/api' },
         { uuid: 'db-acme-postgres-0003', name: 'acme-postgres', type: 'standalone-postgresql', status: 'running:healthy', environment_id: 11 },
         { uuid: 'svc-acme-umami-00004', name: 'umami-analytics', type: 'service', status: 'running:healthy', environment_id: 11 },
         { uuid: 'app-acme-web-stag-0005', name: 'acme-web-staging', type: 'application', status: 'running:healthy', environment_id: 12, fqdn: 'https://staging.example.com', git_repository: 'git@github.com:acme/acme-web.git', git_branch: 'development' },
@@ -62,7 +63,32 @@ export function seed() {
     return { projects, environments, resources, deployments, calls: [] };
 }
 
-export function createMockCoolify({ requireCf = false, version = '4.7.5', data = seed(), liveDeployTicks = 3 } = {}) {
+/**
+ * Demo mode: point `repo` at a real git checkout. The latest finished deployments
+ * then report `deployedCommit` (default: the repo's first commit), new deploys
+ * record the branch tip, and apps listed in `failUuids` fail their next deploy.
+ */
+function applyRepo(data, repo, deployedCommit) {
+    const g = (...a) => execFileSync('git', a, { cwd: repo, encoding: 'utf8' }).trim();
+    const sha = deployedCommit || g('rev-list', '--max-parents=0', 'HEAD').split('\n')[0];
+    const subject = g('show', '-s', '--format=%s', sha);
+    for (const uuid of ['app-acme-web-prod-0001', 'app-acme-api-prod-0002', 'app-acme-web-stag-0005']) {
+        const latest = data.deployments[uuid][0];
+        Object.assign(latest, { commit: sha, commit_message: subject, status: 'finished' });
+        delete latest.logs;
+    }
+    data.gitTip = (branch) => {
+        try {
+            return { commit: g('rev-parse', branch), message: g('show', '-s', '--format=%s', branch) };
+        } catch {
+            return null;
+        }
+    };
+}
+
+export function createMockCoolify({ requireCf = false, version = '4.7.5', data = seed(), liveDeployTicks = 3, repo = '', deployedCommit = '', failUuids = [] } = {}) {
+    if (repo) applyRepo(data, repo, deployedCommit);
+    const failing = new Set(failUuids);
     const json = (res, status, body, headers = {}) => {
         res.writeHead(status, { 'Content-Type': 'application/json', ...headers });
         res.end(JSON.stringify(body));
@@ -124,7 +150,8 @@ export function createMockCoolify({ requireCf = false, version = '4.7.5', data =
             const uuid = url.searchParams.get('uuid');
             const r = data.resources.find((x) => x.uuid === uuid);
             if (!r) return json(res, 404, { message: 'Resource not found.' });
-            const dep = { deployment_uuid: `dep-new-${++counter}`, status: 'queued', commit: 'abcdef0123456789abcdef0123456789abcdef01', commit_message: 'Deployed from VS Code', is_api: true, force_rebuild: url.searchParams.get('force') === 'true', created_at: iso(0), updated_at: iso(0) };
+            const tipInfo = data.gitTip ? data.gitTip(r.git_branch || 'main') : null;
+            const dep = { deployment_uuid: `dep-new-${++counter}`, status: 'queued', commit: tipInfo ? tipInfo.commit : 'abcdef0123456789abcdef0123456789abcdef01', commit_message: tipInfo ? tipInfo.message : 'Deployed from VS Code', fail: failing.has(uuid), is_api: true, force_rebuild: url.searchParams.get('force') === 'true', created_at: iso(0), updated_at: iso(0) };
             (data.deployments[uuid] ||= []).unshift(dep);
             live.set(dep.deployment_uuid, liveDeployTicks);
             return json(res, 200, { deployments: [{ message: `Application ${r.name} deployment queued.`, resource_uuid: uuid, deployment_uuid: dep.deployment_uuid }] });
@@ -151,9 +178,11 @@ export function createMockCoolify({ requireCf = false, version = '4.7.5', data =
         if (live.has(d.deployment_uuid)) {
             const left = live.get(d.deployment_uuid);
             if (left <= 0) {
-                d.status = 'finished';
+                d.status = d.fail ? 'failed' : 'finished';
                 d.updated_at = iso(0);
-                d.logs = logJson(['Starting deployment', 'Building image…', 'Image built.', 'Rolling update completed.']);
+                d.logs = d.fail
+                    ? logJson(['Starting deployment', 'Building image…', 'npm ERR! code ELIFECYCLE', 'npm ERR! Missing script: "build"', 'Deployment failed.'])
+                    : logJson(['Starting deployment', 'Building image…', 'Image built.', 'Rolling update completed.']);
                 live.delete(d.deployment_uuid);
             } else {
                 d.status = 'in_progress';
@@ -174,6 +203,12 @@ export function createMockCoolify({ requireCf = false, version = '4.7.5', data =
 
 if (import.meta.url === `file://${process.argv[1]}`) {
     const port = Number(process.env.PORT || 8765);
-    const mock = createMockCoolify({ requireCf: process.argv.includes('--cf') });
+    const mock = createMockCoolify({
+        requireCf: process.argv.includes('--cf'),
+        repo: process.env.MOCK_REPO || '',
+        deployedCommit: process.env.MOCK_DEPLOYED || '',
+        failUuids: (process.env.MOCK_FAIL || '').split(',').filter(Boolean),
+        liveDeployTicks: Number(process.env.MOCK_TICKS || 3),
+    });
     mock.listen(port).then((url) => console.log(`Mock Coolify at ${url} (token: ${TOKEN})`));
 }

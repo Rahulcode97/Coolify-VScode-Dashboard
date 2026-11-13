@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0
+
+- **Pink bar**: apps that build the open repo show when they have changes not deployed yet (newer commits on their branch, unpushed or uncommitted work), limited to the app's Coolify Base Directory and Watch Paths.
+- **Red "stop users" bar**: warns before deploying a new SQL migration that would lock tables or break the running app (drop/rename column, NOT NULL without default, type changes, non-concurrent indexes, large UPDATE/DELETE and more), or a change matching your own downtime rules. `-- coolify:safe` silences a migration.
+- Settings page: toggles, migration locations and a rules editor.
+- README: "What the lights mean" legend with a short video.
+
 ## 1.0.0
 
 First public release.

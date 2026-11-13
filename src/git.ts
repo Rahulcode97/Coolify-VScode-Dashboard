@@ -1,4 +1,35 @@
+import { promises as fs } from 'fs';
+import * as path from 'path';
 import simpleGit, { SimpleGit } from 'simple-git';
+import { FileChange, PendingGit } from './pending';
+
+/** Parse `git diff --name-status` / `git status --porcelain` style lines. */
+export function parseNameStatus(out: string): FileChange[] {
+    const rows: FileChange[] = [];
+    for (const line of out.split(/\r?\n/)) {
+        if (!line.trim()) continue;
+        const parts = line.split('\t');
+        const status = (parts[0] || '').trim()[0] || '';
+        const file = (status === 'R' || status === 'C' ? parts[2] : parts[1]) || '';
+        if (file) rows.push({ status, file: file.replace(/\\/g, '/') });
+    }
+    return rows;
+}
+
+/** Parse `git status --porcelain=v1 -uall`. Untracked files get status "?". */
+export function parsePorcelain(out: string): FileChange[] {
+    const rows: FileChange[] = [];
+    for (const line of out.split(/\r?\n/)) {
+        if (line.length < 4) continue;
+        const xy = line.slice(0, 2);
+        let file = line.slice(3);
+        if (file.includes(' -> ')) file = file.split(' -> ').pop() || file;
+        file = file.replace(/^"(.*)"$/, '$1');
+        const status = xy === '??' ? '?' : xy.includes('A') ? 'A' : xy.includes('D') ? 'D' : xy.includes('R') ? 'R' : 'M';
+        rows.push({ status, file });
+    }
+    return rows;
+}
 
 /** Thin, cached wrappers around simple-git. All methods fail soft (return empty values). */
 export class GitInfo {
@@ -16,7 +47,9 @@ export class GitInfo {
         if (hit && Date.now() - hit.at < 60_000) return hit.url;
         let url = '';
         try {
-            url = (await this.git(dir).remote(['get-url', remote])) || '';
+            // Raw config value: `get-url` would apply url.*.insteadOf rewrites.
+            url = (await this.git(dir).raw(['config', '--get', `remote.${remote}.url`])) || '';
+            if (!url.trim()) url = (await this.git(dir).remote(['get-url', remote])) || '';
         } catch {
             try {
                 const all = await this.git(dir).getRemotes(true);
@@ -62,6 +95,51 @@ export class GitInfo {
             }),
         );
         return out;
+    }
+
+    /** `git fetch` at most every 5 minutes per folder (or now when forced). Fails soft when offline. */
+    async maybeFetch(dir: string, remote: string, force = false): Promise<void> {
+        const last = this.lastFetch.get(dir) || 0;
+        if (!force && Date.now() - last < 5 * 60_000) return;
+        this.lastFetch.set(dir, Date.now());
+        try {
+            await this.git(dir).fetch([remote, '--prune', '--quiet']);
+        } catch {
+            /* offline: use local refs */
+        }
+    }
+
+    /** Git access for {@link computePending}. */
+    pendingGit(dir: string): PendingGit {
+        const git = this.git(dir);
+        const raw = async (args: string[]) => {
+            try {
+                return await git.raw(args);
+            } catch {
+                return null;
+            }
+        };
+        return {
+            revExists: async (sha) => (await raw(['cat-file', '-e', `${sha}^{commit}`])) !== null,
+            resolve: async (ref) => {
+                const out = await raw(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]);
+                return out ? out.trim() : null;
+            },
+            currentBranch: () => this.currentBranch(dir),
+            diff: async (from, to) => parseNameStatus((await raw(['diff', '--name-status', '-M', from, to])) || ''),
+            countCommits: async (from, to, pathspec) => parseInt(((await raw(['rev-list', '--count', `${from}..${to}`, ...(pathspec ? ['--', pathspec] : [])])) || '0').trim(), 10) || 0,
+            working: async () => parsePorcelain((await raw(['status', '--porcelain=v1', '-uall'])) || ''),
+            read: async (sha, file) => {
+                if (sha === null) {
+                    try {
+                        return await fs.readFile(path.join(dir, ...file.split('/')), 'utf8');
+                    } catch {
+                        return '';
+                    }
+                }
+                return (await raw(['show', `${sha}:${file}`])) || '';
+            },
+        };
     }
 
     /**

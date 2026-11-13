@@ -2,7 +2,7 @@
   "name": "coolify-vscode-dashboard",
   "displayName": "Coolify Deploy Dashboard",
   "description": "Deploy, monitor and manage your Coolify apps, databases and services from the VS Code sidebar. Each repo shows its own Coolify project, with live build logs and Cloudflare Access support.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "rahulcode97",
   "license": "MIT",
   "author": {
@@ -246,8 +246,57 @@
         }
       },
       {
-        "title": "Optional: Pre-deploy command",
+        "title": "Pending-deploy & stop-users bars",
         "order": 4,
+        "properties": {
+          "coolify.deployRisk.pendingBar": {
+            "type": "boolean",
+            "default": true,
+            "scope": "resource",
+            "markdownDescription": "Show a **pink** bar on apps that build this repo when they have changes that are not deployed yet: newer commits on their branch, unpushed commits or uncommitted files. Only files inside the app's Coolify *Base Directory* / *Watch Paths* count."
+          },
+          "coolify.deployRisk.stopUsersCheck": {
+            "type": "boolean",
+            "default": true,
+            "scope": "resource",
+            "markdownDescription": "Turn the bar **red** (\"stop users\") when the pending change would disturb people using the running app: new SQL migrations that lock or rewrite tables, drop or rename columns, etc., or files matching your downtime rules. Add `-- coolify:safe` to a migration to skip it."
+          },
+          "coolify.deployRisk.migrationGlobs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "scope": "resource",
+            "markdownDescription": "Where your SQL migrations live (glob patterns). Empty = common locations: `**/migrations/**/*.sql`, `**/migrate/**/*.sql`, `**/db/migrate/**/*.sql`, `prisma/migrations/**/migration.sql`, `supabase/migrations/*.sql`, `drizzle/**/*.sql`."
+          },
+          "coolify.deployRisk.downtimeRules": {
+            "type": "array",
+            "default": [],
+            "scope": "resource",
+            "markdownDescription": "Your own \"needs downtime\" rules: when a pending change touches a matching file, the bar turns red with your reason. Example: `[{ \"pattern\": \"docker-compose.yml\", \"reason\": \"recreates all containers\" }]`",
+            "items": {
+              "type": "object",
+              "required": [
+                "pattern"
+              ],
+              "properties": {
+                "pattern": {
+                  "type": "string",
+                  "description": "Glob, e.g. docker-compose.yml or api/src/schema/**"
+                },
+                "reason": {
+                  "type": "string",
+                  "description": "Shown on the app row."
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "title": "Optional: Pre-deploy command",
+        "order": 5,
         "properties": {
           "coolify.preDeploy.command": {
             "type": "string",
@@ -273,7 +322,7 @@
       },
       {
         "title": "Optional: Merge & Deploy",
-        "order": 5,
+        "order": 6,
         "properties": {
           "coolify.merge.enabled": {
             "type": "boolean",
@@ -303,7 +352,7 @@
       },
       {
         "title": "Optional: Local services",
-        "order": 6,
+        "order": 7,
         "properties": {
           "coolify.localServices": {
             "type": "array",

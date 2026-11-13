@@ -269,6 +269,9 @@
         else if (lastFailed) cls += ' failed';
         if (r.isThisRepo) cls += ' this-repo';
         if (ui.flash.has(r.uuid)) cls += ' flash';
+        const pend = !deploying && r.pending && r.pending.reasons && r.pending.reasons.length ? r.pending : null;
+        const findings = pend ? pend.findings || [] : [];
+        if (pend) cls += findings.length ? ' pending-stop' : ' pending';
 
         let sub;
         if (r.kind !== 'application') {
@@ -281,6 +284,8 @@
             if (lastFailed) sub += `<span>·</span><span class="state-bad">${latest.buildError ? 'build failed' : 'deploy failed'}</span>`;
             else if (!r.running) sub += `<span>·</span><span class="state-bad">${esc(r.container)}</span>`;
             else if (r.health === 'unhealthy') sub += `<span>·</span><span class="state-bad">unhealthy</span>`;
+            else if (findings.length) sub += `<span>·</span><span class="state-stop">stop users</span>`;
+            else if (pend) sub += `<span>·</span><span class="state-pending">needs deploy</span>`;
             else if (latest.commitMessage) sub += `<span>·</span><span class="msg">${esc(latest.commitMessage)}</span>`;
         } else {
             sub = `<span>Not deployed yet</span>${r.branch ? `<span>·</span><span>${esc(r.branch)}</span>` : ''}`;
@@ -314,11 +319,26 @@
             actions += `<button class="btn ghost" title="Start" ${act('lifecycle', { uuid: r.uuid, name: r.name, kind: r.kind, op: 'start' })}${b}>${I.play} Start</button>`;
         }
 
-        return `<div class="${cls}" data-key="r-${esc(r.uuid)}">
-            <div class="row-main" role="button" tabindex="0" ${act('toggle', { uuid: r.uuid })} aria-expanded="${open}">${dots}<div class="info"><div class="title"><span class="name">${esc(r.name)}</span>${tags}${link}</div><div class="sub">${sub}</div></div></div>
+        const pendTip = pend
+            ? (findings.length ? 'Stop users before deploying:\n' + findings.map((f) => '• ' + f.summary + ' — ' + f.detail).join('\n') + '\n\n' : '') + 'Not deployed yet: ' + pend.reasons.join(' · ')
+            : '';
+        return `<div class="${cls}" data-key="r-${esc(r.uuid)}"${pendTip ? ` title="${esc(pendTip)}"` : ''}>
+            <div class="row-main" role="button" tabindex="0" ${act('toggle', { uuid: r.uuid })} aria-expanded="${open}">${dots}<div class="info"><div class="title"><span class="name">${esc(r.name)}</span>${tags}${link}</div><div class="sub">${sub}</div>${stopList(findings)}</div></div>
             <div class="actions">${actions}</div>
             ${open ? details(r) : ''}
         </div>`;
+    }
+
+    function stopList(findings) {
+        if (!findings || !findings.length) return '';
+        const shown = findings.slice(0, 6);
+        const more = findings.length - shown.length;
+        return (
+            '<ul class="stop-list">' +
+            shown.map((f) => `<li title="${esc(f.detail)}"><span class="stop-file">${esc(String(f.file || '').split('/').pop())}</span>${esc(f.summary)}</li>`).join('') +
+            (more > 0 ? `<li class="stop-more">+${more} more (hover the row)</li>` : '') +
+            '</ul>'
+        );
     }
 
     function details(r) {
@@ -342,6 +362,10 @@
 
         if (d && d.buildError && !FAILED.includes(String(d.status).toLowerCase())) {
             h += `<div class="notice error build-warning">${I.warn}<div>Coolify marked this deployment as finished, but its build log contains <b>${esc(d.buildError)}</b>. The running container is probably the previous build.</div></div>`;
+        }
+        if (r.pending && r.pending.reasons && r.pending.reasons.length && !(deps[0] && isActive(deps[0].status))) {
+            const fs = r.pending.findings || [];
+            h += `<div class="notice ${fs.length ? 'error' : 'pending'} build-warning">${I.warn}<div><b>${fs.length ? 'Stop users before deploying' : 'Not deployed yet'}</b><div class="mt-xs">${esc(r.pending.reasons.join(' · '))}</div>${fs.length ? '<ul class="finding-list">' + fs.map((f) => `<li><b>${esc(String(f.file).split('/').pop())}</b>: ${esc(f.detail)}</li>`).join('') + '</ul>' : ''}</div></div>`;
         }
         if (d && d.commit) {
             const url = commitLink(r.repoUrl, d.commit);

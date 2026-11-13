@@ -5,6 +5,9 @@ import { Settings, activeFolder } from './config';
 import { DashboardData, DashboardState, FolderContext, emptyState } from './dashboardData';
 import { GitInfo } from './git';
 import { LocalServices } from './localServices';
+import { DEFAULT_MIGRATION_GLOBS } from './deployRisk';
+import { isFinishedDeployment } from './logs';
+import { PendingResult, computePending } from './pending';
 import { runPreDeployCommand } from './preDeploy';
 
 const SAVED_PROJECT_KEY = 'coolify.projectByFolder';
@@ -113,6 +116,27 @@ export class Controller implements vscode.Disposable {
             try {
                 next = await this.data.build(client, folder, {
                     commitSubjects: folder?.path ? (shas) => this.git.commitSubjects(folder.path, shas) : undefined,
+                    pending:
+                        folder?.path && folder.settings.pendingBar
+                            ? async (apps) => {
+                                  const s = folder.settings;
+                                  await this.git.maybeFetch(folder.path, s.mergeRemote, !!opts.forceGitFetch);
+                                  const git = this.git.pendingGit(folder.path);
+                                  const out: Record<string, PendingResult | null> = {};
+                                  for (const app of apps) {
+                                      // The running container comes from the last deployment that finished.
+                                      const deployed = app.deployments.find((d) => isFinishedDeployment(d.status) && !d.buildError);
+                                      out[app.uuid] = deployed?.commit
+                                          ? await computePending(
+                                                git,
+                                                { branch: app.branch, deployedCommit: deployed.commit, baseDirectory: app.baseDirectory, watchPaths: app.watchPaths },
+                                                { remote: s.mergeRemote, stopUsers: s.stopUsersCheck, migrationGlobs: s.migrationGlobs.length ? s.migrationGlobs : DEFAULT_MIGRATION_GLOBS, rules: s.downtimeRules },
+                                            ).catch(() => null)
+                                          : null;
+                                  }
+                                  return out;
+                              }
+                            : undefined,
                     aheadBehind: folder?.path
                         ? () => this.git.aheadBehind(folder.path, folder.settings.mergeSource, folder.settings.mergeTarget, folder.settings.mergeRemote, !!opts.forceGitFetch)
                         : undefined,

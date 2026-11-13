@@ -15,6 +15,10 @@ const defaults: FolderSettings = {
     mergeTarget: 'main',
     mergeRemote: 'origin',
     localServices: [],
+    pendingBar: true,
+    stopUsersCheck: true,
+    migrationGlobs: [],
+    downtimeRules: [],
 };
 const folder = (remoteUrl: string, over: Partial<FolderSettings> = {}, saved?: string): FolderContext => ({
     name: remoteUrl.split('/').pop()?.replace('.git', '') || 'folder',
@@ -90,6 +94,21 @@ describe('DashboardData: one Coolify server, several projects', () => {
         const all = s.environments.flatMap((g) => g.resources);
         expect(all.filter((r) => r.isMergeTarget).map((r) => r.name).sort()).toEqual(['acme-api', 'acme-web']);
         expect(s.merge).toEqual({ source: 'development', target: 'main', behind: 3, ahead: 0 });
+    });
+
+    it('asks for pink/red bars only for apps of this repo that are not deploying', async () => {
+        let asked: string[] = [];
+        const s = await new DashboardData().build(client, folder('acme/acme-web'), {
+            pending: async (apps) => {
+                asked = apps.map((a) => a.name).sort();
+                return Object.fromEntries(apps.map((a) => [a.uuid, { reasons: ['1 commit on main not deployed'], findings: [] }]));
+            },
+        });
+        // acme-web-staging is mid-deploy; databases/services and other repos are skipped.
+        expect(asked).toEqual(['acme-api', 'acme-web', 'acme-worker']);
+        const web = s.environments.flatMap((g) => g.resources).find((r) => r.name === 'acme-web');
+        expect(web?.pending?.reasons).toEqual(['1 commit on main not deployed']);
+        expect(web?.baseDirectory).toBe('/web');
     });
 
     it('costs one /resources call per refresh once caches are warm', async () => {

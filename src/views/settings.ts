@@ -103,6 +103,10 @@ export class SettingsPanel implements vscode.Disposable {
                 mergeTarget: fs.mergeTarget,
                 mergeRemote: fs.mergeRemote,
                 localServices: fs.localServices,
+                pendingBar: fs.pendingBar,
+                stopUsersCheck: fs.stopUsersCheck,
+                migrationGlobs: fs.migrationGlobs,
+                downtimeRules: fs.downtimeRules,
             },
             trusted: vscode.workspace.isTrusted,
             currentProject: this.ctl.lastState.project?.uuid || '',
@@ -206,6 +210,14 @@ export class SettingsPanel implements vscode.Disposable {
                 }))
                 .filter((s: LocalServiceConfig) => s.name && s.command);
             await setIfChanged('localServices', services, []);
+            await setIfChanged('deployRisk.pendingBar', f.pendingBar !== false, true);
+            await setIfChanged('deployRisk.stopUsersCheck', f.stopUsersCheck !== false, true);
+            const globs = (Array.isArray(f.migrationGlobs) ? f.migrationGlobs : []).map((g: unknown) => String(g).trim()).filter(Boolean);
+            await setIfChanged('deployRisk.migrationGlobs', globs, []);
+            const rules = (Array.isArray(f.downtimeRules) ? f.downtimeRules : [])
+                .map((r: any) => ({ pattern: String(r?.pattern || '').trim(), ...(r?.reason ? { reason: String(r.reason).trim() } : {}) }))
+                .filter((r: { pattern: string }) => r.pattern);
+            await setIfChanged('deployRisk.downtimeRules', rules, []);
             await setIfChanged('environment', String(m.folder?.environment || '').trim(), '');
 
             const projectUuid = String(m.folder?.projectUuid || '').trim();
