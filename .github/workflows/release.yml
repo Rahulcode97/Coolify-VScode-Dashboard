@@ -5,7 +5,8 @@ on:
     tags: ['v*']
 
 permissions:
-  contents: write
+  contents: write   # create the GitHub release
+  id-token: write   # trusted publishing (OIDC) to the VS Code Marketplace
 
 jobs:
   release:
@@ -28,11 +29,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" coolify-vscode-dashboard-*.vsix --title "$GITHUB_REF_NAME" --notes "See CHANGELOG.md"
-      - name: Publish to VS Code Marketplace
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        if: env.VSCE_PAT != ''
-        run: npx vsce publish --no-dependencies --packagePath coolify-vscode-dashboard-*.vsix
+      - name: Publish to VS Code Marketplace (trusted publishing, no token)
+        run: npx vsce publish --oidc --no-dependencies --packagePath coolify-vscode-dashboard-*.vsix
       - name: Publish to Open VSX
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}

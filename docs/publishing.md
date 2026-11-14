@@ -12,10 +12,12 @@ Releases run from GitHub Actions (`.github/workflows/release.yml`) when you push
 ### Visual Studio Marketplace
 
 1. Sign in at <https://marketplace.visualstudio.com/manage> with a Microsoft account and **create a publisher**. Its **ID** must equal `"publisher"` in `package.json` (currently `RahulSrivastava`; change one or the other).
-2. Create a Personal Access Token at <https://dev.azure.com> → *User settings* → *Personal access tokens* → *New token*:
-   - Organization: **All accessible organizations**
-   - Scopes: **Custom defined → Marketplace → Manage**
-3. In the GitHub repo: *Settings → Secrets and variables → Actions → New repository secret*: `VSCE_PAT` = that token.
+2. **Trusted publishing (no token):** on the publisher page open **Trusted Publishing → Create** and enter
+   - Repository owner: `Rahulcode97`, repository: `Coolify-VScode-Dashboard`
+   - Workflow file: `release.yml`
+   - Environment: leave empty
+
+   The workflow already has `id-token: write` and runs `vsce publish --oidc`.
 
 ### Open VSX
 
