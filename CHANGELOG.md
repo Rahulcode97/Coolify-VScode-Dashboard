@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1
+
+- Publisher ID `RahulSrivastava`; releases are published automatically through Marketplace trusted publishing.
+
 ## 1.1.0
 
 - **Pink bar**: apps that build the open repo show when they have changes not deployed yet (newer commits on their branch, unpushed or uncommitted work), limited to the app's Coolify Base Directory and Watch Paths.
