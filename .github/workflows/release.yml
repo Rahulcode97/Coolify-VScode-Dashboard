@@ -28,7 +28,13 @@ jobs:
       - name: GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" coolify-vscode-dashboard-*.vsix --title "$GITHUB_REF_NAME" --notes "See CHANGELOG.md"
+        run: |
+          # The release may already exist when the tag was made from the GitHub "Draft a new release" page.
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" coolify-vscode-dashboard-*.vsix --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" coolify-vscode-dashboard-*.vsix --title "$GITHUB_REF_NAME" --notes "See CHANGELOG.md"
+          fi
       - name: Publish to VS Code Marketplace (trusted publishing, no token)
         run: npx vsce publish --oidc --no-dependencies --packagePath coolify-vscode-dashboard-*.vsix
       - name: Publish to Open VSX
