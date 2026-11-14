@@ -11,7 +11,7 @@ Releases run from GitHub Actions (`.github/workflows/release.yml`) when you push
 
 ### Visual Studio Marketplace
 
-1. Sign in at <https://marketplace.visualstudio.com/manage> with a Microsoft account and **create a publisher**. Its **ID** must equal `"publisher"` in `package.json` (currently `rahulcode97`; change one or the other).
+1. Sign in at <https://marketplace.visualstudio.com/manage> with a Microsoft account and **create a publisher**. Its **ID** must equal `"publisher"` in `package.json` (currently `RahulSrivastava`; change one or the other).
 2. Create a Personal Access Token at <https://dev.azure.com> → *User settings* → *Personal access tokens* → *New token*:
    - Organization: **All accessible organizations**
    - Scopes: **Custom defined → Marketplace → Manage**
@@ -21,7 +21,7 @@ Releases run from GitHub Actions (`.github/workflows/release.yml`) when you push
 
 1. Sign in at <https://open-vsx.org> with GitHub and accept the Eclipse publisher agreement (profile page).
 2. Create an access token (profile → *Access Tokens*).
-3. Create the namespace once from your machine: `npx ovsx create-namespace rahulcode97 -p <token>`
+3. Create the namespace once from your machine: `npx ovsx create-namespace RahulSrivastava -p <token>`
 4. Add the GitHub secret `OVSX_PAT`.
 
 ## Releasing

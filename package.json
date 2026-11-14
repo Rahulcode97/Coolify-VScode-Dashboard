@@ -3,7 +3,7 @@
   "displayName": "Coolify Deploy Dashboard",
   "description": "Deploy, monitor and manage your Coolify apps, databases and services from the VS Code sidebar. Each repo shows its own Coolify project, with live build logs and Cloudflare Access support.",
   "version": "1.1.0",
-  "publisher": "rahulcode97",
+  "publisher": "RahulSrivastava",
   "license": "MIT",
   "author": {
     "name": "Rahulcode97"

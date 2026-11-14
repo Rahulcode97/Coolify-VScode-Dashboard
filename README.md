@@ -7,8 +7,8 @@
 **Deploy, watch and manage your [Coolify](https://coolify.io) apps without leaving VS Code.**
 Each repo shows its own Coolify project, with live build logs and one-click deploys. Works directly, on localhost, or behind Cloudflare Access.
 
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/rahulcode97.coolify-vscode-dashboard?label=VS%20Code%20Marketplace&color=8c52ff)](https://marketplace.visualstudio.com/items?itemName=rahulcode97.coolify-vscode-dashboard)
-[![Open VSX](https://img.shields.io/open-vsx/v/rahulcode97/coolify-vscode-dashboard?label=Open%20VSX%20(Cursor)&color=8c52ff)](https://open-vsx.org/extension/rahulcode97/coolify-vscode-dashboard)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/RahulSrivastava.coolify-vscode-dashboard?label=VS%20Code%20Marketplace&color=8c52ff)](https://marketplace.visualstudio.com/items?itemName=RahulSrivastava.coolify-vscode-dashboard)
+[![Open VSX](https://img.shields.io/open-vsx/v/RahulSrivastava/coolify-vscode-dashboard?label=Open%20VSX%20(Cursor)&color=8c52ff)](https://open-vsx.org/extension/RahulSrivastava/coolify-vscode-dashboard)
 [![CI](https://github.com/Rahulcode97/Coolify-VScode-Dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/Rahulcode97/Coolify-VScode-Dashboard/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
